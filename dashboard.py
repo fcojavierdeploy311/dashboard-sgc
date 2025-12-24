@@ -93,6 +93,12 @@ def main_dashboard():
 
     st.title("🛡️ Centro de Comando SGC")
     
+    # --- LOGO SIDEBAR ---
+    try:
+        st.sidebar.image("logo.png", width=200)
+    except Exception:
+        pass
+
     # Botón de Logout en el sidebar
     if st.sidebar.button("Cerrar Sesión"):
         st.session_state["password_correct"] = False
