@@ -183,10 +183,23 @@ def main_dashboard():
                     st.info("Sube un documento PDF o imagen para registrarlo en el sistema.")
                     
                     with st.form("form_subida_unica"):
-                        col_a, col_b = st.columns(2)
-                        nombre_doc = col_a.text_input("Nombre del Documento")
-                        codigo_doc = col_b.text_input("Código")
-                        area_doc = st.selectbox("Área", ["Calidad", "RRHH", "Operaciones", "Ventas", "Dirección", "Otro"])
+                        # Fila 1: Básicos
+                        c1, c2, c3 = st.columns(3)
+                        nombre_doc = c1.text_input("Nombre del Documento")
+                        codigo_doc = c2.text_input("Código")
+                        area_doc = c3.selectbox("Área", ["Calidad", "RRHH", "Operaciones", "Ventas", "Dirección", "Otro"])
+
+                        # Fila 2: Detalles
+                        c4, c5, c6 = st.columns(3)
+                        tipo_doc = c4.selectbox("Tipo de Documento", ['Procedimiento', 'Formato', 'Manual', 'Instructivo', 'Registro', 'Externo'])
+                        estado_doc = c5.selectbox("Estado", ['Vigente', 'En Revisión', 'Obsoleto'])
+                        revision_doc = c6.text_input("No. de Revisión", value="1.0")
+
+                        # Fila 3: Responsables y Fechas
+                        c7, c8, c9 = st.columns(3)
+                        responsable_doc = c7.text_input("Responsable del Documento")
+                        fecha_emision_doc = c8.date_input("Fecha de Emisión", value=datetime.now())
+                        vencimiento_doc = c9.date_input("Fecha de Vencimiento / Revisión", value=datetime.now() + timedelta(days=365))
                         
                         uploaded_file = st.file_uploader("Seleccionar Archivo (PDF, PNG, JPG)")
                         
@@ -212,18 +225,20 @@ def main_dashboard():
                                     public_url = supabase.storage.from_(bucket_name).get_public_url(file_name)
                                     
                                     # 4. Insertar en Base de Datos
-                                    # Mapeo: Concepto Usuario -> Columna Real DB
                                     nuevo_registro = {
-                                        "titulo": nombre_doc,           # 'nombre' -> titulo
-                                        "codigo": codigo_doc,           # 'codigo' -> codigo
-                                        "area": area_doc,               # 'area' -> area
-                                        "link_documento": public_url,   # 'link_documento' -> link_documento
-                                        "fecha_emision": datetime.now().strftime('%Y-%m-%d'), # 'fecha_carga' -> fecha_emision
+                                        # Campos básicos
+                                        "titulo": nombre_doc,
+                                        "codigo": codigo_doc,
+                                        "area": area_doc,
+                                        "link_documento": public_url,
                                         
-                                        # Campos adicionales necesarios para el dashboard
-                                        "estatus": "Vigente",
-                                        "revision": "0",
-                                        "tipo_documento": file_ext.upper()
+                                        # Campos nuevos mapeados
+                                        "tipo_documento": tipo_doc,
+                                        "estatus": estado_doc,       # 'Estado' -> estatus
+                                        "revision": revision_doc,    # 'rev' -> revision
+                                        "responsable": responsable_doc,
+                                        "fecha_emision": fecha_emision_doc.strftime('%Y-%m-%d'),
+                                        "proxima_revision": vencimiento_doc.strftime('%Y-%m-%d') # 'vencimiento' -> proxima_revision
                                     }
                                     
                                     supabase.table("documentos_sgc").insert(nuevo_registro).execute()
@@ -236,7 +251,7 @@ def main_dashboard():
                                 except Exception as e:
                                     st.error(f"❌ Error durante la carga: {e}")
                             else:
-                                st.warning("⚠️ Completa todos los campos (Nombre, Código y Archivo).")
+                                st.warning("⚠️ Completa todos los campos obligatorios.")
 
                 # --- CARGA MASIVA (Lógica Anterior) ---
                 with tab_bulk:
