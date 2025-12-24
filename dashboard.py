@@ -212,14 +212,17 @@ def main_dashboard():
                                     public_url = supabase.storage.from_(bucket_name).get_public_url(file_name)
                                     
                                     # 4. Insertar en Base de Datos
+                                    # Mapeo: Concepto Usuario -> Columna Real DB
                                     nuevo_registro = {
-                                        "titulo": nombre_doc, # Mapeo a columna existente
-                                        "codigo": codigo_doc,
-                                        "area": area_doc,
-                                        "estatus": "Vigente", # Default
-                                        "revision": "0", # Default
-                                        "fecha_emision": datetime.now().strftime('%Y-%m-%d'),
-                                        "link_documento": public_url,
+                                        "titulo": nombre_doc,           # 'nombre' -> titulo
+                                        "codigo": codigo_doc,           # 'codigo' -> codigo
+                                        "area": area_doc,               # 'area' -> area
+                                        "link_documento": public_url,   # 'link_documento' -> link_documento
+                                        "fecha_emision": datetime.now().strftime('%Y-%m-%d'), # 'fecha_carga' -> fecha_emision
+                                        
+                                        # Campos adicionales necesarios para el dashboard
+                                        "estatus": "Vigente",
+                                        "revision": "0",
                                         "tipo_documento": file_ext.upper()
                                     }
                                     
