@@ -174,20 +174,83 @@ def main_dashboard():
 
             # === TAB 3: CARGA ===
             with tab3:
-                st.markdown("### 📥 Actualización Masiva")
-                uploaded_file = st.file_uploader("Sube tu CSV", type=['csv'])
-                if uploaded_file and st.button("🚀 Procesar"):
-                    try:
-                        df_raw = pd.read_csv(uploaded_file)
-                        df_clean = clean_data_for_upload(df_raw)
-                        data = df_clean.where(pd.notnull(df_clean), None).to_dict(orient='records')
-                        supabase.table("documentos_sgc").delete().neq("id", 0).execute()
-                        supabase.table("documentos_sgc").insert(data).execute()
-                        st.success("✅ Actualizado")
-                        time.sleep(1)
-                        st.rerun()
-                    except Exception as e:
-                        st.error(f"Error: {e}")
+                st.markdown("### 📤 Carga de Documentos")
+                
+                tab_single, tab_bulk = st.tabs(["📄 Documento Único", "📦 Carga Masiva (CSV)"])
+                
+                # --- SUBIDA ÚNICA ---
+                with tab_single:
+                    st.info("Sube un documento PDF o imagen para registrarlo en el sistema.")
+                    
+                    with st.form("form_subida_unica"):
+                        col_a, col_b = st.columns(2)
+                        nombre_doc = col_a.text_input("Nombre del Documento")
+                        codigo_doc = col_b.text_input("Código")
+                        area_doc = st.selectbox("Área", ["Calidad", "RRHH", "Operaciones", "Ventas", "Dirección", "Otro"])
+                        
+                        uploaded_file = st.file_uploader("Seleccionar Archivo (PDF, PNG, JPG)")
+                        
+                        btn_subir = st.form_submit_button("Subir Documento 🚀")
+                        
+                        if btn_subir:
+                            if uploaded_file and nombre_doc and codigo_doc:
+                                try:
+                                    # 1. Preparar archivo
+                                    file_content = uploaded_file.read()
+                                    file_ext = uploaded_file.name.split('.')[-1]
+                                    file_name = f"{codigo_doc}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.{file_ext}"
+                                    bucket_name = "documentos"
+                                    
+                                    # 2. Subir a Storage
+                                    supabase.storage.from_(bucket_name).upload(
+                                        path=file_name,
+                                        file=file_content,
+                                        file_options={"content-type": uploaded_file.type}
+                                    )
+                                    
+                                    # 3. Obtener URL Pública
+                                    public_url = supabase.storage.from_(bucket_name).get_public_url(file_name)
+                                    
+                                    # 4. Insertar en Base de Datos
+                                    nuevo_registro = {
+                                        "titulo": nombre_doc, # Mapeo a columna existente
+                                        "codigo": codigo_doc,
+                                        "area": area_doc,
+                                        "estatus": "Vigente", # Default
+                                        "revision": "0", # Default
+                                        "fecha_emision": datetime.now().strftime('%Y-%m-%d'),
+                                        "link_documento": public_url,
+                                        "tipo_documento": file_ext.upper()
+                                    }
+                                    
+                                    supabase.table("documentos_sgc").insert(nuevo_registro).execute()
+                                    
+                                    st.success("✅ Documento cargado exitosamente")
+                                    st.balloons()
+                                    time.sleep(2)
+                                    st.rerun()
+                                    
+                                except Exception as e:
+                                    st.error(f"❌ Error durante la carga: {e}")
+                            else:
+                                st.warning("⚠️ Completa todos los campos (Nombre, Código y Archivo).")
+
+                # --- CARGA MASIVA (Lógica Anterior) ---
+                with tab_bulk:
+                     st.markdown("### 📥 Actualización Masiva")
+                     csv_file = st.file_uploader("Sube tu CSV", type=['csv'], key="csv_upload")
+                     if csv_file and st.button("🚀 Procesar CSV"):
+                        try:
+                            df_raw = pd.read_csv(csv_file)
+                            df_clean = clean_data_for_upload(df_raw)
+                            data = df_clean.where(pd.notnull(df_clean), None).to_dict(orient='records')
+                            supabase.table("documentos_sgc").delete().neq("id", 0).execute()
+                            supabase.table("documentos_sgc").insert(data).execute()
+                            st.success("✅ Actualizado")
+                            time.sleep(1)
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"Error: {e}")
         else:
             st.info("No hay datos en la base de datos.")
     else:
