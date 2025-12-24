@@ -193,6 +193,14 @@ def main_dashboard():
     else:
         st.error("No se pudo conectar a Supabase. Revisa tus secretos.")
 
+    # --- CRÉDITOS SIDEBAR ---
+    st.sidebar.divider()
+    st.sidebar.markdown("""
+    👨‍💻 **Desarrollado por:** Francisco Javier García Santos
+    
+    [📧 Contactar Soporte](mailto:qbfranciscojavier@gmail.com?subject=Consulta%20sobre%20Dashboard%20SGC)
+    """)
+
 # --- EJECUCIÓN ---
 if __name__ == "__main__":
     if check_password():
