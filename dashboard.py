@@ -146,6 +146,51 @@ def main_dashboard():
 
             # === TAB 2: TABLA EXPLORADOR ===
             with tab2:
+                # --- ZONA DE GESTIÓN (ELIMINAR) ---
+                with st.expander("🗑️ Zona de Gestión (Eliminar)"):
+                    if not df.empty:
+                        # Opciones para el selectbox
+                        doc_options = [f"ID: {row['id']} | {row['titulo']}" for index, row in df.iterrows()]
+                        selected_doc = st.selectbox("Seleccionar documento a eliminar:", doc_options)
+                        
+                        if st.button("🔥 Eliminar Documento Definitivamente", type="primary"):
+                            try:
+                                # Paso 1: Parsear ID
+                                # El formato es "ID: [id] | [titulo]"
+                                doc_id = int(selected_doc.split(' | ')[0].replace('ID: ', ''))
+                                
+                                # Paso 2: Recuperar link para obtener nombre de archivo
+                                # Consultamos de nuevo por seguridad para tener el link exacto
+                                data_response = supabase.table("documentos_sgc").select("link_documento").eq("id", doc_id).execute()
+                                
+                                if data_response.data:
+                                    link = data_response.data[0].get("link_documento", "")
+                                    
+                                    # Paso 3: Borrar archivo del Bucket (si existe link)
+                                    if link:
+                                        # Extraer nombre archivo de la URL
+                                        # Ejemplo: .../documentos_sgc/codigo_fecha.pdf
+                                        file_name_to_del = link.split('/')[-1]
+                                        
+                                        try:
+                                            supabase.storage.from_('documentos').remove([file_name_to_del])
+                                        except Exception as e_storage:
+                                            # Si falla borrar el archivo (ej. ya no existe), avisamos pero seguimos para borrar registro
+                                            st.warning(f"No se pudo borrar el archivo físico (posiblemente ya no existe): {e_storage}")
+                                    
+                                    # Paso 4: Borrar Registro en BD
+                                    supabase.table("documentos_sgc").delete().eq("id", doc_id).execute()
+                                    
+                                    st.success("✅ Documento eliminado correctamente")
+                                    time.sleep(1)
+                                    st.rerun()
+                                else:
+                                    st.error("No se encontró el registro en la base de datos.")
+                            except Exception as e:
+                                st.error(f"Error al eliminar: {e}")
+                    else:
+                        st.info("No hay documentos disponibles para eliminar.")
+
                 with st.expander("🔍 Filtros", expanded=True):
                     c1, c2 = st.columns(2)
                     search = c1.text_input("Buscar", "")
