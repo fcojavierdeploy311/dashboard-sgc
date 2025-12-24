@@ -197,9 +197,8 @@ def main_dashboard():
     st.sidebar.divider()
     st.sidebar.markdown("""
     👨‍💻 **Desarrollado por:** Francisco Javier García Santos
-    
-    [📧 Contactar Soporte](mailto:qbfranciscojavier@gmail.com?subject=Consulta%20sobre%20Dashboard%20SGC)
     """)
+    st.sidebar.markdown('[📧 Contactar Soporte](https://tally.so/r/QKMXrX)', unsafe_allow_html=True)
 
 # --- EJECUCIÓN ---
 if __name__ == "__main__":
